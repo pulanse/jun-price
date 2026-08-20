@@ -603,7 +603,7 @@
   <!-- Bottom Bar -->
   <div class="bottom-bar">
     <div class="bottom-info">
-      <div class="bottom-count">已选 <strong id="selectedCount">0</strong> 本</div>
+      <div class="bottom-count" id="selectedCount">共选0本，成人0本，学生0本</div>
     </div>
     <div class="bottom-actions">
       <span class="clear-all-btn" id="clearAllBtn" onclick="clearAll()" style="display:none">清空</span>
@@ -939,12 +939,18 @@
 
     // ===== 更新底部栏 =====
     function updateBottomBar() {
-      const count = selectedBooks.size;
+      const total = selectedBooks.size;
+      let adult = 0, student = 0;
+      bookData.forEach(cat => {
+        const c = cat.books.filter(b => selectedBooks.has(b.isbn)).length;
+        if (cat.category === '成人') adult = c;
+        else if (cat.category === '学生') student = c;
+      });
 
-      document.getElementById('selectedCount').textContent = count;
-      document.getElementById('exportBtn').disabled = count === 0;
-      document.getElementById('exportExcelBtn').disabled = count === 0;
-      document.getElementById('clearAllBtn').style.display = count > 0 ? '' : 'none';
+      document.getElementById('selectedCount').textContent = `共选${total}本，成人${adult}本，学生${student}本`;
+      document.getElementById('exportBtn').disabled = total === 0;
+      document.getElementById('exportExcelBtn').disabled = total === 0;
+      document.getElementById('clearAllBtn').style.display = total > 0 ? '' : 'none';
     }
 
     // ===== 清空所有选择 =====
