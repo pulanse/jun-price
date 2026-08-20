@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>选书助手 - 在线选书工具</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      line-height: 1.6;
+      padding-bottom: 90px;
+    }
+
+    /* ===== Header ===== */
+    .header {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+      padding: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(249, 115, 22, 0.3);
+    }
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .header-left { text-align: left; min-width: 0; }
+    .header h1 { font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+    .header .subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .version-badge {
+      display: inline-block;
+      margin-left: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+      background: #f97316;
+      border-radius: 999px;
+      padding: 2px 10px;
+      vertical-align: 3px;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    /* ===== Admin Toolbar ===== */
+    .admin-toolbar {
+      background: #1d1d1f;
+      color: #fff;
+      padding: 8px 16px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      position: sticky;
+      top: 78px;
+      z-index: 99;
+    }
+    .admin-toolbar.show { display: flex; }
+    .admin-toolbar .tag {
+      background: #e74c3c;
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    .admin-toolbar .import-btn {
+      background: #2d2d2f;
+      color: #fff;
+      border: 1px solid #555;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .admin-toolbar .import-btn:active { background: #444; }
+
+    /* ===== Customer Info ===== */
+    .customer-info {
+      padding: 12px 16px;
+      background: white;
+      display: flex;
+      gap: 8px;
+    }
+    .customer-info input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .customer-info input:focus { border-color: #f97316; }
+
+    /* ===== Search ===== */
+    .search-bar {
+      padding: 0 16px 12px;
+      background: white;
+      position: relative;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 12px 10px 38px;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      background: #f8f8fa;
+      transition: all 0.2s;
+    }
+    .search-bar input:focus { border-color: #f97316; background: white; }
+    .search-bar .icon {
+      position: absolute;
+      left: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      fill: #aaa;
+    }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px;
+      overflow-x: auto;
+      background: white;
+      border-bottom: 1px solid #f0f0f0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      padding: 7px 16px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 20px;
+      font-size: 13px;
+      white-space: nowrap;
+      cursor: pointer;
+      background: white;
+      color: #666;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+      border-color: transparent;
+    }
+    .tab .badge {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 11px;
+      background: rgba(255,255,255,0.3);
+      padding: 0 5px;
+      border-radius: 8px;
+    }
+    .tab:not(.active) .badge { background: #f0f0f0; color: #999; }
+
+    /* ===== Layout / Sidebar（ISBN分类） ===== */
+    .layout { display: flex; align-items: flex-start; }
+    .main { flex: 1; min-width: 0; }
+    .sidebar {
+      display: none;
+      width: 220px;
+      flex-shrink: 0;
+      position: sticky;
+      top: 90px;
+      max-height: calc(100vh - 108px);
+      overflow-y: auto;
+      background: white;
+      border-right: 1px solid #f0f0f0;
+      padding: 12px 10px;
+    }
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1d1d1f;
+      padding: 4px 8px 2px;
+    }
+    .sidebar-sub {
+      font-size: 11px;
+      color: #aaa;
+      font-weight: 400;
+      display: block;
+      margin-top: 2px;
+      padding: 0 8px 10px;
+    }
+    .clc-item {
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #444;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .clc-item:hover { background: #fff7ed; }
+    .clc-item.active {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+      font-weight: 600;
+    }
+    .clc-item .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .clc-item .cnt { font-size: 11px; color: #aaa; flex-shrink: 0; }
+    .clc-item.active .cnt { color: rgba(255,255,255,0.75); }
+    .clc-item .badge {
+      display: inline-block;
+      margin-left: 2px;
+      font-size: 11px;
+      background: #f0f0f0;
+      color: #999;
+      padding: 0 5px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .clc-item.active .badge { background: rgba(255,255,255,0.3); color: white; }
+
+    /* 手机端：ISBN分类第二行 tab */
+    .tabs-clc { border-top: 1px solid #f0f0f0; }
+    .tab-label {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 6px 7px 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ea580c;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .tabs .tab .cnt { font-size: 11px; color: #aaa; margin-left: 4px; }
+    .tabs .tab.active .cnt { color: rgba(255,255,255,0.75); }
+
+    @media (min-width: 768px) {
+      .sidebar { display: block; }
+      .tabs-clc { display: none; }
+    }
+
+    /* ===== 筛选提示条 ===== */
+    .filter-banner {
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      color: #4338ca;
+      padding: 10px 14px;
+      font-size: 12px;
+      border-radius: 10px;
+      margin-bottom: 12px;
+    }
+    .filter-banner b { font-weight: 700; }
+
+    /* ===== Book List ===== */
+    .book-list { padding: 14px 16px; }
+    .category-section { margin-bottom: 24px; }
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .category-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1d1d1f;
+    }
+    .category-title .count {
+      font-size: 12px;
+      color: #999;
+      font-weight: 400;
+      margin-left: 6px;
+    }
+    .select-all-btn {
+      font-size: 12px;
+      color: #f97316;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .select-all-btn:active { background: #f0f0ff; }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    /* 均价书单：无价格显示，价格由客服另行报价 */
+
+    .book-card {
+      background: white;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .book-card:active { transform: scale(0.98); }
+    .book-card.selected {
+      border-color: #f97316;
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    }
+    .book-info { flex: 1; min-width: 0; }
+    .book-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1d1d1f;
+      line-height: 1.45;
+      word-break: break-all;
+    }
+    .set-badge {
+      color: #e02424;
+      font-weight: 700;
+      font-size: 12px;
+      margin-left: 6px;
+      background: #ffecec;
+      border: 1px solid #ffc9c9;
+      border-radius: 4px;
+      padding: 0 4px;
+      vertical-align: 1px;
+      white-space: nowrap;
+    }
+    .book-author {
+      font-size: 12px;
+      color: #999;
+      margin-top: 2px;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+    .book-meta {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 2px;
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+    .book-checkbox {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid #d0d0d0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .book-card.selected .book-checkbox {
+      background: #f97316;
+      border-color: #f97316;
+    }
+    .book-card.selected .book-checkbox::after {
+      content: "";
+      width: 7px;
+      height: 11px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+      margin-bottom: 2px;
+    }
+
+    /* ===== Load More ===== */
+    .load-more-wrap { text-align: center; padding: 6px 0 20px; }
+    .load-more-btn {
+      display: inline-block;
+      padding: 10px 30px;
+      border: 1.5px solid #f97316;
+      color: #f97316;
+      border-radius: 22px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      user-select: none;
+    }
+    .load-more-btn:active { background: #f0f0ff; }
+
+    /* ===== Bottom Bar ===== */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+      z-index: 100;
+    }
+    .bottom-info { flex: 1; }
+    .bottom-count { font-size: 13px; color: #666; }
+    .bottom-count strong { color: #f97316; font-size: 16px; }
+    .clear-all-btn {
+      font-size: 12px;
+      color: #e74c3c;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .export-btn {
+      padding: 12px 28px;
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+      border: none;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.15s, opacity 0.2s;
+    }
+    .export-btn:active { transform: scale(0.95); }
+    .export-btn:disabled { opacity: 0.4; }
+    .bottom-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .export-excel-btn {
+      padding: 10px 16px;
+      background: white;
+      color: #f97316;
+      border: 1.5px solid #f97316;
+      border-radius: 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.15s, opacity 0.2s;
+    }
+    .export-excel-btn:active { transform: scale(0.95); }
+    .export-excel-btn:disabled { opacity: 0.4; }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 24px 20px;
+      max-width: 460px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal h2 {
+      font-size: 19px;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+    .modal .modal-sub {
+      font-size: 12px;
+      color: #999;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .modal textarea {
+      width: 100%;
+      height: 280px;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 13px;
+      font-family: "SF Mono", "Consolas", "Menlo", monospace;
+      line-height: 1.7;
+      resize: none;
+      outline: none;
+      background: #fafafa;
+      color: #333;
+    }
+    .modal textarea:focus { border-color: #f97316; }
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .modal-buttons button {
+      flex: 1;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .modal-buttons button:active { transform: scale(0.97); }
+    .btn-copy {
+      background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+      color: white;
+    }
+    .btn-close { background: #f0f0f0; color: #666; }
+    .modal .hint {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 14px;
+      z-index: 300;
+      opacity: 0;
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* ===== Empty ===== */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #bbb;
+    }
+    .empty .emoji { font-size: 40px; margin-bottom: 8px; }
+
+    /* ===== Tip Banner ===== */
+    .tip-banner {
+      background: linear-gradient(135deg, #fff8e1 0%, #fff3cd 100%);
+      padding: 10px 16px;
+      font-size: 12px;
+      color: #8a6d3b;
+      text-align: center;
+      border-bottom: 1px solid #ffeaa7;
+    }
+    .tip-banner.admin {
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      color: #2e7d32;
+      border-bottom: 1px solid #a5d6a7;
+    }
+
+    /* ===== 加载遮罩动画 ===== */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loadingOverlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: #f5f5f7; z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    #loadingOverlay .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid #e5e5ea; border-top-color: #f97316;
+      border-radius: 50%; animation: spin 0.9s linear infinite;
+    }
+    #loadingOverlay .loading-text { font-size: 14px; color: #888; }
+  </style>
+</head>
+<body>
+
+  <!-- 加载遮罩：页面先显示，数据加载完成后再显示书单，避免白屏等待 -->
+  <div id="loadingOverlay">
+    <div class="spinner"></div>
+    <div class="loading-text">📚 均价书单加载中，请稍候…</div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-left">
+        <h1>📚 均价书单选书<span class="version-badge" id="versionBadge">书单 20260815</span></h1>
+        <div class="subtitle" id="headerSub">学生 · 成人 均价书单 ｜ 选中好书发给客服报价</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tip -->
+  <div class="tip-banner" id="tipBanner">
+    💡 点击书籍卡片即可选书，选完后点击「生成清单」复制发给客服，价格由客服报价
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar：ISBN分类/中图法（桌面端左侧显示） -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">📚 ISBN分类<span class="sidebar-sub">按中图法大类 · 可与学段分类叠加</span></div>
+      <div class="sidebar-list" id="clcSidebarList"></div>
+    </aside>
+
+    <main class="main">
+      <!-- Customer Info -->
+      <div class="customer-info">
+        <input type="text" id="customerName" placeholder="您的称呼（选填）" maxlength="20">
+        <input type="text" id="customerContact" placeholder="微信号/手机号（选填）" maxlength="30">
+      </div>
+
+      <!-- Search -->
+      <div class="search-bar">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input type="text" id="searchInput" placeholder="搜索书名 / 作者 / ISBN / 出版社 / ISBN分类...">
+      </div>
+
+      <!-- Tabs：学段分类 -->
+      <div class="tabs" id="tabs"></div>
+
+      <!-- Tabs：ISBN分类（手机端显示为第二行） -->
+      <div class="tabs tabs-clc" id="clcTabs"></div>
+
+      <!-- Book List -->
+      <div class="book-list" id="bookList"></div>
+    </main>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar">
+    <div class="bottom-info">
+      <div class="bottom-count">已选 <strong id="selectedCount">0</strong> 本</div>
+    </div>
+    <div class="bottom-actions">
+      <span class="clear-all-btn" id="clearAllBtn" onclick="clearAll()" style="display:none">清空</span>
+      <button class="export-excel-btn" id="exportExcelBtn" onclick="exportExcel()" disabled>导出清单</button>
+      <button class="export-btn" id="exportBtn" onclick="exportSelection()" disabled>生成清单</button>
+    </div>
+  </div>
+
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <h2 id="exportModalTitle">📋 选书清单</h2>
+      <div class="modal-sub" id="exportModalSub">复制以下内容，发送给客服即可</div>
+      <textarea id="exportText" readonly></textarea>
+      <div class="modal-buttons">
+        <button class="btn-copy" onclick="copyText()">复制清单</button>
+        <button class="btn-close" onclick="closeModal()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ===== 数据加载器：CDN 加速 + 本地兜底 =====
+       书单数据 book-data.js 优先从 jsDelivr CDN 加载（国内访问比 github.io 快很多），
+       前三个 CDN 地址都失败时自动回退到本目录的 book-data.js。
+       ⚠️ 更新书单数据时：把 DATA_CACHE 版本号改一下（如 20260819），
+       并把新的 book-data.js 上传到 GitHub 仓库，网址本身不会变。 -->
+  <script>
+    (function () {
+      window.__DATA_CACHE = '20260815'; // 数据缓存版本号，更新书单数据时同步修改
+      var isOnline = (location.protocol === 'http:' || location.protocol === 'https:');
+      var urls = [];
+      if (isOnline) {
+        urls.push('https://cdn.jsdelivr.net/gh/pulanse/jun-price@main/book-data.js?v=' + window.__DATA_CACHE);
+        urls.push('https://gcore.jsdelivr.net/gh/pulanse/jun-price@main/book-data.js?v=' + window.__DATA_CACHE);
+        urls.push('https://fastly.jsdelivr.net/gh/pulanse/jun-price@main/book-data.js?v=' + window.__DATA_CACHE);
+      }
+      urls.push('book-data.js'); // 本地打开 / 在线兜底
+      window.__dataReady = new Promise(function (resolve, reject) {
+        var i = 0;
+        (function loadNext() {
+          if (i >= urls.length) { reject(new Error('书单数据加载失败，请刷新重试')); return; }
+          var s = document.createElement('script');
+          s.src = urls[i++];
+          s.onload = function () { resolve(); };
+          s.onerror = function () { s.remove(); loadNext(); };
+          document.head.appendChild(s);
+        })();
+      });
+    })();
+  </script>
+
+  <script>
+    // ===== 主逻辑：数据加载完成后由 __dataReady 触发执行 =====
+    function appMain() {
+    // ===== 书单数据 =====
+    // 均价书单：学生 + 成人 两本均价书单合并（按 ISBN 去重 + 套装合并）
+    // 每本书：isbn, title, author, publisher, date, clc(ISBN分类), cat(学生商品类别), location(库位), clcLetter(中图法大类字母), setCount(套装册数)
+    // 无价格字段：页面不显示价格，价格由客服主动告知客户
+    const bookData = window.bookData = ((window.BOOK_DATA && Array.isArray(window.BOOK_DATA)) ? window.BOOK_DATA : []);
+    const CLC_NAMES = window.CLC_NAMES || {};
+
+    // 书单版本徽章：优先取数据文件里的 BOOK_VERSION，兜底用 HTML 里的默认值
+    (function () {
+      const ver = window.BOOK_VERSION || '';
+      const badge = document.getElementById('versionBadge');
+      if (badge) {
+        if (ver) badge.textContent = `书单 ${ver}`;
+        else badge.style.display = 'none';
+      }
+    })();
+
+    // ISBN -> 书籍 索引，用于快速查询（底部统计 / 全选匹配）
+    const bookByIsbn = new Map();
+    bookData.forEach(cat => {
+      cat.books.forEach(b => { if (!bookByIsbn.has(b.isbn)) bookByIsbn.set(b.isbn, b); });
+    });
+
+    const TOTAL_BOOKS = bookByIsbn.size;
+
+    // ===== ISBN分类（中图法大类）索引 =====
+    function buildClcIndex() {
+      const letterCount = new Map();
+      bookData.forEach((cat, catIdx) => {
+        cat.books.forEach(b => {
+          const letter = b.clcLetter || '其他';
+          letterCount.set(letter, (letterCount.get(letter) || 0) + 1);
+        });
+      });
+      // 按中图法字母顺序 A-Z，最后放"其他"
+      const order = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const groups = [];
+      for (const ch of order) {
+        if (letterCount.has(ch)) {
+          groups.push({ letter: ch, name: CLC_NAMES[ch] || (ch + '.其他'), count: letterCount.get(ch) });
+        }
+      }
+      if (letterCount.has('其他')) {
+        groups.push({ letter: '其他', name: '其他', count: letterCount.get('其他') });
+      }
+      return groups;
+    }
+
+    const CLC_GROUPS = window.CLC_GROUPS = buildClcIndex();
+
+    // ===== 状态管理 =====
+    const selectedBooks = new Set();   // 存 ISBN
+    let currentCategory = 0;           // 学段分类索引（0=学生，1=成人）
+    let currentClc = 'all';            // 'all' 或中图法大类字母
+    let searchTerm = '';
+    let renderLimit = 200;             // 单次渲染上限（大数据量分批渲染）
+    const RENDER_STEP = 200;
+
+    // ===== 工具函数 =====
+
+    // 搜索匹配
+    function matchSearch(book) {
+      if (!searchTerm) return true;
+      const t = searchTerm.toLowerCase();
+      return (
+        (book.title && book.title.toLowerCase().includes(t)) ||
+        (book.author && book.author.toLowerCase().includes(t)) ||
+        (book.isbn && book.isbn.includes(t)) ||
+        (book.publisher && book.publisher.toLowerCase().includes(t)) ||
+        (book.clc && book.clc.toLowerCase().includes(t))
+      );
+    }
+
+    // 当前筛选下的书籍：返回 [{cat, catIdx, book}]（学段 × ISBN分类 × 搜索 叠加）
+    function getFilteredBooks() {
+      const result = [];
+      bookData.forEach((cat, catIdx) => {
+        if (currentCategory !== catIdx) return;
+        cat.books.forEach(book => {
+          if (currentClc !== 'all' && currentClc !== book.clcLetter) return;
+          if (!matchSearch(book)) return;
+          result.push({ cat, catIdx, book });
+        });
+      });
+      return result;
+    }
+
+    // ===== 渲染学段分类标签（学生 / 成人） =====
+    function renderTabs() {
+      const tabsEl = document.getElementById('tabs');
+      let html = '';
+      bookData.forEach((cat, idx) => {
+        let selectedInCat = 0;
+        cat.books.forEach(b => { if (selectedBooks.has(b.isbn)) selectedInCat++; });
+        const badge = selectedInCat > 0 ? `<span class="badge">${selectedInCat}</span>` : '';
+        html += `<div class="tab ${currentCategory === idx ? 'active' : ''}" onclick="switchCategory(${idx})">${cat.category}${badge}</div>`;
+      });
+      tabsEl.innerHTML = html;
+    }
+
+    // ===== ISBN分类选项（侧边栏 / 手机端 tab 共用） =====
+    function clcOptionsHtml(cls) {
+      const item = (letter, name, count, sel) => {
+        const active = currentClc === letter;
+        const badge = sel > 0 ? `<span class="badge">${sel}</span>` : '';
+        // 手机端 tab 只显示字母；侧边栏显示完整名称
+        const displayName = cls === 'tab' ? letter : name;
+        return `<div class="${cls} ${active ? 'active' : ''}" onclick="switchClc('${letter}')">` +
+          `<span class="name">${displayName}</span><span class="cnt">${count}本${badge}</span></div>`;
+      };
+      let html = item('all', '全部', TOTAL_BOOKS, 0);
+      CLC_GROUPS.forEach(g => {
+        let sel = 0;
+        bookData.forEach(cat => {
+          cat.books.forEach(b => {
+            if (b.clcLetter === g.letter && selectedBooks.has(b.isbn)) sel++;
+          });
+        });
+        html += item(g.letter, g.name, g.count, sel);
+      });
+      return html;
+    }
+
+    // 手机端：顶部第二行 ISBN分类 tab
+    function renderClcTabs() {
+      document.getElementById('clcTabs').innerHTML =
+        `<span class="tab-label">📚 ISBN分类</span>` + clcOptionsHtml('tab');
+    }
+
+    // 桌面端：左侧边栏 ISBN分类列表
+    function renderClcSidebar() {
+      document.getElementById('clcSidebarList').innerHTML = clcOptionsHtml('clc-item');
+    }
+
+    // ===== 切换 ISBN分类 =====
+    function switchClc(letter) {
+      currentClc = letter;
+      renderLimit = RENDER_STEP;
+      renderTabs();
+      renderClcTabs();
+      renderClcSidebar();
+      renderBooks();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 均价书单：无价格筛选、无排序下拉，价格由客服报价
+
+    // ===== 渲染书籍列表（分批） =====
+    function renderBooks() {
+      const listEl = document.getElementById('bookList');
+      const filtered = getFilteredBooks();
+      const totalMatched = filtered.length;
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="empty"><div class="emoji">📖</div>没有找到匹配的书籍</div>`;
+        return;
+      }
+
+      const visible = filtered.slice(0, renderLimit);
+      let html = '';
+
+      // ISBN分类筛选提示条
+      if (currentClc !== 'all') {
+        const g = CLC_GROUPS.find(x => x.letter === currentClc);
+        const name = g ? g.name : currentClc;
+        html += `<div class="filter-banner">📚 当前 ISBN分类：<b>${name}</b>（${filtered.length} 本 · 可再点上方学段分类叠加筛选）</div>`;
+      }
+
+      // 搜索结果提示
+      if (searchTerm && totalMatched > visible.length) {
+        html += `<div class="tip-banner">🔍 共匹配 ${totalMatched} 本，已显示前 ${visible.length} 本，请输入更精确的关键词（书名 / ISBN）</div>`;
+      }
+
+      // 按分类分组渲染
+      const grouped = {};
+      visible.forEach(item => {
+        const key = item.catIdx;
+        if (!grouped[key]) grouped[key] = { cat: item.cat, catIdx: item.catIdx, books: [] };
+        grouped[key].books.push(item.book);
+      });
+
+      Object.keys(grouped).forEach(key => {
+        const { cat, catIdx, books } = grouped[key];
+        const selectedInCat = books.filter(b => selectedBooks.has(b.isbn)).length;
+        const allSelected = selectedInCat === books.length;
+
+        html += `<div class="category-section">`;
+        html += `<div class="category-header">`;
+        html += `<div class="category-title">${cat.category}<span class="count">${cat.books.length}本</span></div>`;
+        html += `<div class="header-controls">`;
+        html += `<div class="select-all-btn" onclick="toggleCategory(${catIdx})">${allSelected && !searchTerm ? '取消全选' : '全选'}</div>`;
+        html += `</div>`;
+        html += `</div>`;
+
+        books.forEach(book => {
+          const isSelected = selectedBooks.has(book.isbn);
+          // 套装书：书名后加红色"全X册"标注，并移除书名中重复的"（全X册）"标记
+          let setBadge = '';
+          let titleText = book.title || '';
+          if (book.setCount) {
+            setBadge = `<span class="set-badge">全${book.setCount}册</span>`;
+            titleText = titleText.replace(/（\s*全\s*\d+\s*(?:册|本|卷|套|辑)\s*）/g, '').replace(/\s+/g, ' ').trim();
+          }
+          let costHtml = '';
+
+          html += `
+            <div class="book-card ${isSelected ? 'selected' : ''}" onclick="toggleBook('${book.isbn}')">
+              <div class="book-info">
+                <div class="book-title">《${titleText}》${setBadge}</div>
+                <div class="book-author">${book.author || '佚名'}</div>
+                <div class="book-meta">ISBN ${book.isbn}${book.publisher ? ' · ' + book.publisher : ''}${book.clc ? ' · ' + book.clc : ''}</div>
+              </div>
+              <div class="book-checkbox"></div>
+            </div>
+          `;
+        });
+
+        html += `</div>`;
+      });
+
+      // 加载更多
+      if (totalMatched > visible.length) {
+        html += `<div class="load-more-wrap"><span class="load-more-btn" onclick="loadMore()">加载更多（已显示 ${visible.length} / ${totalMatched}）</span></div>`;
+      }
+
+      listEl.innerHTML = html;
+    }
+
+    function loadMore() {
+      renderLimit += RENDER_STEP;
+      renderBooks();
+    }
+
+    // ===== 切换学段分类 =====
+    function switchCategory(cat) {
+      currentCategory = cat;
+      renderLimit = RENDER_STEP;
+      renderTabs();
+      renderBooks();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ===== 切换书籍选中状态 =====
+    function toggleBook(isbn) {
+      if (selectedBooks.has(isbn)) {
+        selectedBooks.delete(isbn);
+      } else {
+        selectedBooks.add(isbn);
+      }
+      renderTabs();
+      renderClcTabs();
+      renderClcSidebar();
+      renderBooks();
+      updateBottomBar();
+    }
+
+    // ===== 全选/取消全选（作用于当前筛选条件下的该分类） =====
+    function toggleCategory(catIdx) {
+      const visibleBooks = getFilteredBooks().filter(i => i.catIdx === catIdx).map(i => i.book);
+      if (visibleBooks.length === 0) return;
+      const allSelected = visibleBooks.every(b => selectedBooks.has(b.isbn));
+
+      if (allSelected) {
+        visibleBooks.forEach(b => selectedBooks.delete(b.isbn));
+      } else {
+        visibleBooks.forEach(b => selectedBooks.add(b.isbn));
+      }
+
+      renderTabs();
+      renderClcTabs();
+      renderClcSidebar();
+      renderBooks();
+      updateBottomBar();
+      showToast(allSelected ? '已取消全选' : `已选 ${visibleBooks.length} 本`);
+    }
+
+    // ===== 更新底部栏 =====
+    function updateBottomBar() {
+      const count = selectedBooks.size;
+
+      document.getElementById('selectedCount').textContent = count;
+      document.getElementById('exportBtn').disabled = count === 0;
+      document.getElementById('exportExcelBtn').disabled = count === 0;
+      document.getElementById('clearAllBtn').style.display = count > 0 ? '' : 'none';
+    }
+
+    // ===== 清空所有选择 =====
+    function clearAll() {
+      selectedBooks.clear();
+      renderTabs();
+      renderClcTabs();
+      renderClcSidebar();
+      renderBooks();
+      updateBottomBar();
+      showToast('已清空所有选择');
+    }
+
+    // ===== 生成选书清单 =====
+    function exportSelection() {
+      if (selectedBooks.size === 0) return;
+
+      const name = document.getElementById('customerName').value.trim();
+      const contact = document.getElementById('customerContact').value.trim();
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+
+      let totalCount = 0;
+
+      // ===== 客户版清单（含 ISBN，方便客服精确核对） =====
+      let text = '━━━━━━━━━━━━━━━━\n';
+      text += '    选 书 清 单\n';
+      text += '━━━━━━━━━━━━━━━━\n';
+      if (name) text += `客户：${name}\n`;
+      if (contact) text += `联系方式：${contact}\n`;
+      if (window.BOOK_VERSION) text += `书单版本：${window.BOOK_VERSION}\n`;
+      text += `日期：${dateStr}\n\n`;
+
+      bookData.forEach(cat => {
+        const selectedInCat = cat.books.filter(b => selectedBooks.has(b.isbn));
+        if (selectedInCat.length > 0) {
+          text += `【${cat.category}】共${selectedInCat.length}本\n`;
+          selectedInCat.forEach((book, i) => {
+            const setTag = book.setCount ? ` 全${book.setCount}册` : '';
+            text += `  ${i + 1}.《${book.title}》${book.author || ''}${setTag} [ISBN: ${book.isbn}]\n`;
+          });
+          totalCount += selectedInCat.length;
+          text += '\n';
+        }
+      });
+
+      text += '━━━━━━━━━━━━━━━━\n';
+      text += `合计：${totalCount}本\n`;
+      text += '━━━━━━━━━━━━━━━━\n';
+
+      document.getElementById('exportModalTitle').textContent = '📋 选书清单';
+      document.getElementById('exportModalSub').textContent = '复制以下内容，发送给客服即可（价格由客服报价）';
+
+      document.getElementById('exportText').value = text;
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    // ===== 复制文本 =====
+    function copyText() {
+      const textarea = document.getElementById('exportText');
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(textarea.value).then(() => {
+          showToast('✅ 清单已复制，粘贴发送即可');
+        }).catch(() => {
+          fallbackCopy(textarea);
+        });
+      } else {
+        fallbackCopy(textarea);
+      }
+    }
+
+    function fallbackCopy(textarea) {
+      try {
+        document.execCommand('copy');
+        showToast('✅ 清单已复制，粘贴发送即可');
+      } catch (e) {
+        showToast('请手动长按文本复制');
+      }
+    }
+
+    // ===== 关闭弹窗 =====
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+
+    // ===== 导出 Excel 清单 =====
+    // Excel 组件(xlsx.full.min.js)按需懒加载：点导出时才下载，加快首屏打开速度
+    function loadXlsxThenExport() {
+      var urls = [];
+      if (location.protocol === 'http:' || location.protocol === 'https:') {
+        urls.push('https://cdn.jsdelivr.net/gh/pulanse/jun-price@main/xlsx.full.min.js?v=' + (window.__DATA_CACHE || '1'));
+      }
+      urls.push('xlsx.full.min.js');
+      var i = 0;
+      (function loadNext() {
+        if (i >= urls.length) { showToast('Excel 组件加载失败，请检查网络后重试'); return; }
+        var s = document.createElement('script');
+        s.src = urls[i++];
+        s.onload = function () {
+          if (typeof XLSX !== 'undefined') exportExcel();
+          else { s.remove(); loadNext(); }
+        };
+        s.onerror = function () { s.remove(); loadNext(); };
+        document.head.appendChild(s);
+      })();
+    }
+
+    function exportExcel() {
+      if (selectedBooks.size === 0) return;
+      if (typeof XLSX === 'undefined') {
+        showToast('正在加载 Excel 组件，请稍候…');
+        loadXlsxThenExport();
+        return;
+      }
+
+      const rows = [];
+      bookData.forEach(cat => {
+        cat.books.forEach(book => {
+          if (!selectedBooks.has(book.isbn)) return;
+          const title = book.setCount ? `${book.title}（全${book.setCount}册）` : (book.title || '');
+          rows.push({
+            'ISBN': book.isbn || '',
+            '书名': title,
+            '库位': book.location || '',
+            '版别': book.publisher || '',
+            '作者': book.author || '',
+            '类别': book.cat || cat.category
+          });
+        });
+      });
+
+      if (rows.length === 0) return;
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [
+        { wch: 18 }, { wch: 55 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 10 }
+      ];
+
+      // 表头黄色背景 + 加粗
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const addr = XLSX.utils.encode_cell({ r: 0, c: C });
+        if (!ws[addr]) continue;
+        ws[addr].s = {
+          fill: { patternType: 'solid', fgColor: { rgb: 'FFFF00' } },
+          font: { bold: true, sz: 11 },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '选书清单');
+
+      const now = new Date();
+      const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+      const version = window.BOOK_VERSION || dateStr;
+      const fileName = `${version}_${rows.length}.xlsx`;
+
+      try {
+        // 优先用 <a download> 触发下载，保留自定义文件名
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1000);
+        showToast(`✅ 正在下载 ${fileName}`);
+      } catch (e) {
+        // 兜底：用 writeFile 再试一次
+        try {
+          XLSX.writeFile(wb, fileName);
+          showToast(`✅ 正在下载 ${fileName}`);
+        } catch (e2) {
+          showToast('导出失败：' + (e2 && e2.message ? e2.message : '未知错误'));
+        }
+      }
+    }
+
+    // ===== Toast 提示 =====
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+
+    // ===== 搜索 =====
+    let searchTimer = null;
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+      searchTerm = e.target.value.trim();
+      renderLimit = RENDER_STEP;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        renderTabs();
+        renderBooks();
+      }, 150);
+    });
+
+    // ===== 点击遮罩关闭弹窗 =====
+    document.getElementById('modalOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ===== 初始化 =====
+    if (bookData.length === 0) {
+      document.getElementById('bookList').innerHTML =
+        `<div class="empty"><div class="emoji">⚠️</div>书单数据未加载，请确认 book-data.js 与本页面在同一目录</div>`;
+    } else {
+      document.getElementById('headerSub').textContent = `共 ${TOTAL_BOOKS} 本书 · 学生/成人 均价书单 · 选中后生成清单发给客服报价`;
+      document.getElementById('tipBanner').textContent = '💡 先选「学生」或「成人」书单，再按 ISBN分类(中图法) 浏览，支持搜索书名 / 作者 / ISBN / 出版社，选完后点击「生成清单」复制发给客服（价格由客服报价）';
+
+      renderTabs();
+      renderClcTabs();
+      renderClcSidebar();
+      renderBooks();
+      updateBottomBar();
+    }
+
+    // 测试用辅助：允许外部脚本修改筛选状态（不影响正常用户）
+    window.setTestFilters = function(cat, clc, term) {
+      currentCategory = cat;
+      currentClc = clc;
+      searchTerm = term;
+    };
+
+    // 暴露给 HTML 内联 onclick 调用的全局函数（appMain 包函数后需显式挂载，否则点击报 not defined）
+    window.clearAll = clearAll;
+    window.closeModal = closeModal;
+    window.copyText = copyText;
+    window.exportExcel = exportExcel;
+    window.exportSelection = exportSelection;
+    window.loadMore = loadMore;
+    window.switchCategory = switchCategory;
+    window.switchClc = switchClc;
+    window.toggleBook = toggleBook;
+    window.toggleCategory = toggleCategory;
+    } // ===== end appMain =====
+
+    // ===== 启动：数据加载完成后初始化 =====
+    window.__dataReady.then(function () {
+      appMain();
+      var lo = document.getElementById('loadingOverlay');
+      if (lo) lo.style.display = 'none';
+    }).catch(function (err) {
+      var lo = document.getElementById('loadingOverlay');
+      if (lo) lo.style.display = 'none';
+      var list = document.getElementById('bookList');
+      if (list) list.innerHTML = '<div class="empty"><div class="emoji">⚠️</div>' +
+        (err && err.message ? err.message : '书单数据加载失败') + '，请刷新页面重试</div>';
+    });
+  </script>
+
+</body>
+</html>
