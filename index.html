@@ -940,10 +940,16 @@
 
     // ===== 更新底部栏 =====
     function updateBottomBar() {
-      const total = selectedBooks.size;
-      let adult = 0, student = 0;
+      let total = 0, adult = 0, student = 0;
       bookData.forEach(cat => {
-        const c = cat.books.filter(b => selectedBooks.has(b.isbn)).length;
+        let c = 0;
+        cat.books.forEach(b => {
+          if (selectedBooks.has(b.isbn)) {
+            const n = b.setCount || 1;
+            c += n;
+            total += n;
+          }
+        });
         if (cat.category === '成人') adult = c;
         else if (cat.category === '学生') student = c;
       });
